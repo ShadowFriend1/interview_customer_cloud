@@ -3,8 +3,6 @@ import json
 
 import webapp2
 from google.appengine.ext import ndb
-
-
 # [END imports]
 
 
@@ -40,33 +38,35 @@ class PartialCreditCard(ndb.Model):
 class DataManip(webapp2.RequestHandler):
 
     def put(self):
-        info_list = json.load(self.request.get('customer info'))
-        matches = Customer.query_customers_email(info_list[1])
+        info_list = json.load(self.request.PUT.multi['customer info'].file.read())
+        matches = Customer.query_customers_email(info_list['email'])
         if len(matches) > 0:
             for n in matches:
-                if not info_list[2] in n.get().cards:
+                if not info_list['trailing'] in n.get().cards:
                     temp = n.get()
-                    temp.cards = [temp.cards, info_list[2]]
+                    temp.cards = [temp.cards, info_list['trailing']]
                     temp.put()
         else:
-            customer = Customer(first_name=info_list[0],
-                                email=info_list[1],
-                                cards=info_list[2])
+            customer = Customer(first_name=info_list['name'],
+                                email=info_list['email'],
+                                cards=info_list['trailing'])
             customer.put()
-            card = PartialCreditCard(trailing_digits=info_list[2],
-                                     leading_digits=info_list[3],
-                                     card_type=info_list[4],
-                                     start_date=info_list[5],
-                                     expiry_date=info_list[6])
+            card = PartialCreditCard(trailing_digits=info_list['trailing'],
+                                     leading_digits=info_list['leading'],
+                                     card_type=info_list['type'],
+                                     start_date=info_list['start'],
+                                     expiry_date=info_list['expiry'])
             card.put()
 
     def get(self):
         customers_key = Customer.query_customers_card(self.request.get("card info"))
+        customer = {}
         customers = []
         for n in customers_key:
-            customers.append(customers_key.get().first_name)
-            customers.append(customers_key.get().email)
-        self.response.write(json.dump(customers))
+            customer['name'] = customers_key.get().first_name
+            customer['email'] = customers_key.get().email
+            customers.append(customer)
+        self.response.write(json.dumps(customers))
 # [END data manipulation]
 
 
