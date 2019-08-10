@@ -1,6 +1,6 @@
 # [START imports]
 import json
-
+from datetime import datetime
 import webapp2
 from google.appengine.ext import ndb
 # [END imports]
@@ -13,14 +13,6 @@ class Customer(ndb.Model):
     email = ndb.StringProperty(indexed=True, required=True)
     cards = ndb.IntegerProperty(indexed=True,
                                 repeated=True)
-
-    @classmethod
-    def query_customers_card(cls, card_key):
-        return cls.query(cards=card_key).order(-cls.first_name)
-
-    @classmethod
-    def query_customers_email(cls, email_key):
-        return cls.query(email=email_key)
 
 
 class PartialCreditCard(ndb.Model):
@@ -39,32 +31,49 @@ class DataManip(webapp2.RequestHandler):
 
     def put(self):
         info_list = json.loads(self.request.body)
-        matches = Customer.query_customers_email(info_list['email'])
+        matches = Customer.query(Customer.email == info_list['email']).fetch()
+        self.response.write(matches)
         if len(matches) > 0:
+            self.response.write(len(matches))
             for n in matches:
-                if not info_list['trailing'] in n.get().cards:
-                    temp = n.get()
-                    temp.cards = [temp.cards, info_list['trailing']]
-                    temp.put()
+                if not info_list['trailing'] in n.cards:
+                    n.cards = [n.cards, info_list['trailing']]
+                    n.put()
+            self.response.write("added to matching customers /n")
         else:
             customer = Customer(first_name=info_list['name'],
                                 email=info_list['email'],
-                                cards=info_list['trailing'])
+                                cards=[info_list['trailing']])
             customer.put()
-            card = PartialCreditCard(trailing_digits=info_list['trailing'],
-                                     leading_digits=info_list['leading'],
-                                     card_type=info_list['type'],
-                                     start_date=info_list['start'],
-                                     expiry_date=info_list['expiry'])
+            card = PartialCreditCard(trailing_digits=info_list['trailing'])
+            try:
+                card.leading_digits = info_list['leading']
+            except NameError:
+                self.response("no leading digits /n")
+            try:
+                card.card_type = info_list['type']
+            except NameError:
+                self.response("no card type /n")
+            try:
+                card.start_date = datetime.strptime(info_list['start'], '%Y %b %d')
+            except NameError:
+                self.response("no start date /n")
+            try:
+                card.expiry_date = datetime.strptime(info_list['expiry'], '%Y %b %d')
+            except NameError:
+                self.response("no expiry date /n")
             card.put()
+            self.response.write("created new customer /n")
 
     def get(self):
-        customers_key = Customer.query_customers_card(self.request.get("card info"))
+        card_info = self.request.get("card info")
+        card_info = int(card_info)
+        customers_key = Customer.query(Customer.cards == card_info).order(Customer.first_name).fetch()
         customer = {}
         customers = []
         for n in customers_key:
-            customer['name'] = customers_key.get().first_name
-            customer['email'] = customers_key.get().email
+            customer['name'] = n.first_name
+            customer['email'] = n.email
             customers.append(customer)
         self.response.headers['Content-Type'] = 'application/json'
         self.response.write(json.dumps(customers))
