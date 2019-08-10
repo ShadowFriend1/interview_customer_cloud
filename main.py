@@ -38,7 +38,7 @@ class PartialCreditCard(ndb.Model):
 class DataManip(webapp2.RequestHandler):
 
     def put(self):
-        info_list = json.load(self.request.PUT.multi['customer info'].file.read())
+        info_list = json.loads(self.request.body)
         matches = Customer.query_customers_email(info_list['email'])
         if len(matches) > 0:
             for n in matches:
@@ -66,6 +66,7 @@ class DataManip(webapp2.RequestHandler):
             customer['name'] = customers_key.get().first_name
             customer['email'] = customers_key.get().email
             customers.append(customer)
+        self.response.headers['Content-Type'] = 'application/json'
         self.response.write(json.dumps(customers))
 # [END data manipulation]
 
