@@ -52,11 +52,15 @@ class DataManip(webapp2.RequestHandler):
         matches = Customer.query(Customer.email == info_list['email']).fetch()
         if len(matches) > 0:
             for n in matches:
-                if not len(Customer.query(
-                        Customer.cards == PartialCreditCard(trailing_digits=info_list['trailing'])).fetch()) > 0:
-                    n.cards = [n.cards, card]
+                matching_cards = Customer.query(
+                        Customer.cards == PartialCreditCard(trailing_digits=info_list['trailing'])).fetch()
+                if not len(matching_cards) > 0:
+                    n.cards.append(card)
                     n.put()
                     self.response.write("card added to customer \n")
+                elif card not in matching_cards:
+                    self.response.write("card information updated \n")
+                    n.cards.append(card)
                 else:
                     self.response.write("customer card already exists \n")
         else:
