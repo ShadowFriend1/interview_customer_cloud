@@ -48,7 +48,7 @@ class DataManip(webapp2.RequestHandler):
             card.expiry_date = datetime.strptime(info_list['expiry'], '%Y %m %d')
         except KeyError:
             self.response.write("no expiry date /n")
-        self.response.write(card.trailing_digits)
+        card.put()
         matches = Customer.query(Customer.email == info_list['email']).fetch()
         if len(matches) > 0:
             for n in matches:
