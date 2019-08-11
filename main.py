@@ -7,14 +7,6 @@ from google.appengine.ext import ndb
 
 
 # [START data definitions]
-class Customer(ndb.Model):
-    """Sub model for representing a customer"""
-    first_name = ndb.StringProperty(indexed=True, required=True)
-    email = ndb.StringProperty(indexed=True, required=True)
-    cards = ndb.IntegerProperty(indexed=True,
-                                repeated=True)
-
-
 class PartialCreditCard(ndb.Model):
     """Sub model for representing partial credit card information"""
     trailing_digits = ndb.IntegerProperty(indexed=True,
@@ -23,6 +15,13 @@ class PartialCreditCard(ndb.Model):
     card_type = ndb.StringProperty(indexed=True)
     start_date = ndb.DateProperty(indexed=True)
     expiry_date = ndb.DateProperty(indexed=True)
+
+
+class Customer(ndb.Model):
+    """Sub model for representing a customer"""
+    first_name = ndb.StringProperty(indexed=True, required=True)
+    email = ndb.StringProperty(indexed=True, required=True)
+    cards = ndb.StructuredProperty(PartialCreditCard, indexed=True, repeated=True)
 # [END data definitions]
 
 
@@ -31,44 +30,46 @@ class DataManip(webapp2.RequestHandler):
 
     def put(self):
         info_list = json.loads(self.request.body)
+
+        card = PartialCreditCard(trailing_digits=info_list['trailing'])
+        try:
+            card.leading_digits = info_list['leading']
+        except KeyError:
+            self.response.write("no leading digits /n")
+        try:
+            card.card_type = info_list['type']
+        except KeyError:
+            self.response.write("no card type /n")
+        try:
+            card.start_date = datetime.strptime(info_list['start'], '%Y %m %d')
+        except KeyError:
+            self.response.write("no start date /n")
+        try:
+            card.expiry_date = datetime.strptime(info_list['expiry'], '%Y %m %d')
+        except KeyError:
+            self.response.write("no expiry date /n")
+        self.response.write(card.trailing_digits)
         matches = Customer.query(Customer.email == info_list['email']).fetch()
-        self.response.write(matches)
         if len(matches) > 0:
-            self.response.write(len(matches))
             for n in matches:
-                if not info_list['trailing'] in n.cards:
-                    n.cards = [n.cards, info_list['trailing']]
+                if not len(Customer.query(
+                        Customer.cards == PartialCreditCard(trailing_digits=info_list['trailing'])).fetch()) > 0:
+                    n.cards = [n.cards, card]
                     n.put()
+                    self.response.write("card added to customer /n")
             self.response.write("added to matching customers /n")
         else:
             customer = Customer(first_name=info_list['name'],
                                 email=info_list['email'],
-                                cards=[info_list['trailing']])
+                                cards=[card])
             customer.put()
-            card = PartialCreditCard(trailing_digits=info_list['trailing'])
-            try:
-                card.leading_digits = info_list['leading']
-            except NameError:
-                self.response("no leading digits /n")
-            try:
-                card.card_type = info_list['type']
-            except NameError:
-                self.response("no card type /n")
-            try:
-                card.start_date = datetime.strptime(info_list['start'], '%Y %b %d')
-            except NameError:
-                self.response("no start date /n")
-            try:
-                card.expiry_date = datetime.strptime(info_list['expiry'], '%Y %b %d')
-            except NameError:
-                self.response("no expiry date /n")
-            card.put()
             self.response.write("created new customer /n")
 
     def get(self):
         card_info = self.request.get("card info")
         card_info = int(card_info)
-        customers_key = Customer.query(Customer.cards == card_info).order(Customer.first_name).fetch()
+        customers_key = Customer.query(
+            Customer.cards == PartialCreditCard(trailing_digits=card_info)).order(Customer.first_name).fetch()
         customer = {}
         customers = []
         for n in customers_key:
