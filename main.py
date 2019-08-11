@@ -75,12 +75,9 @@ class DataManip(webapp2.RequestHandler):
         card_info = int(card_info)
         customers_key = Customer.query(
             Customer.cards == PartialCreditCard(trailing_digits=card_info)).order(Customer.first_name).fetch()
-        customer = {}
         customers = []
         for n in customers_key:
-            customer['name'] = n.first_name
-            customer['email'] = n.email
-            customers.append(customer)
+            customers.append({'name': n.first_name, 'email': n.email})
         self.response.headers['Content-Type'] = 'application/json'
         self.response.write(json.dumps(customers))
 # [END data manipulation]
