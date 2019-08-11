@@ -12,10 +12,5 @@ indexes:
 
 - kind: Customer
   properties:
-  - name: cards
-  - name: first_name
-
-- kind: Customer
-  properties:
   - name: cards.trailing_digits
   - name: first_name
