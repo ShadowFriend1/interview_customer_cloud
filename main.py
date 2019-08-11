@@ -52,10 +52,8 @@ class DataManip(webapp2.RequestHandler):
         matches = Customer.query(Customer.email == info_list['email']).fetch()
         if len(matches) > 0:
             for n in matches:
-                matching_cards = Customer.query(
-                        Customer.cards == PartialCreditCard(trailing_digits=info_list['trailing'])).fetch()
                 match = False
-                for x in matching_cards:
+                for x in n.cards:
                     if [card.leading_digits, card.card_type, card.start_date, card.expiry_date] == \
                             [x.leading_digits, x.card_type, x.start_date, x.expiry_date]:
                         self.response.write("card already exists \n")
