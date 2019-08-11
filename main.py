@@ -56,7 +56,8 @@ class DataManip(webapp2.RequestHandler):
                         Customer.cards == PartialCreditCard(trailing_digits=info_list['trailing'])).fetch()
                 match = False
                 for x in matching_cards:
-                    if x == card:
+                    if [card.leading_digits, card.card_type, card.start_date, card.expiry_date] == \
+                            [x.leading_digits, x.card_type, x.start_date, x.expiry_date]:
                         self.response.write("card already exists \n")
                         match = True
                         break
