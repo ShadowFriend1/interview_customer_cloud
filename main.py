@@ -35,19 +35,19 @@ class DataManip(webapp2.RequestHandler):
         try:
             card.leading_digits = info_list['leading']
         except KeyError:
-            self.response.write("no leading digits /n")
+            self.response.write("no leading digits \n")
         try:
             card.card_type = info_list['type']
         except KeyError:
-            self.response.write("no card type /n")
+            self.response.write("no card type \n")
         try:
             card.start_date = datetime.strptime(info_list['start'], '%Y %m %d')
         except KeyError:
-            self.response.write("no start date /n")
+            self.response.write("no start date \n")
         try:
             card.expiry_date = datetime.strptime(info_list['expiry'], '%Y %m %d')
         except KeyError:
-            self.response.write("no expiry date /n")
+            self.response.write("no expiry date \n")
         card.put()
         matches = Customer.query(Customer.email == info_list['email']).fetch()
         if len(matches) > 0:
@@ -56,14 +56,15 @@ class DataManip(webapp2.RequestHandler):
                         Customer.cards == PartialCreditCard(trailing_digits=info_list['trailing'])).fetch()) > 0:
                     n.cards = [n.cards, card]
                     n.put()
-                    self.response.write("card added to customer /n")
-            self.response.write("added to matching customers /n")
+                    self.response.write("card added to customer \n")
+                else:
+                    self.response.write("customer card already exists \n")
         else:
             customer = Customer(first_name=info_list['name'],
                                 email=info_list['email'],
                                 cards=[card])
             customer.put()
-            self.response.write("created new customer /n")
+            self.response.write("created new customer \n")
 
     def get(self):
         card_info = self.request.get("card info")
